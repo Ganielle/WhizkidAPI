@@ -1,7 +1,7 @@
 const Storyassessment = require("../models/Storyassessment")
 const {GoogleAuth} = require('google-auth-library');
 
-const {computeAccuracy} = require("../utils/assessmentutils")
+const {computeAccuracy, analyzeProsody, getWavDuration} = require("../utils/assessmentutils")
 const {convertdatetime} = require("../utils/datetimeutils")
 
 const { SpeechClient } = require('@google-cloud/speech');
@@ -31,42 +31,79 @@ exports.assessment = async (req, res) => {
   try {
     const audioBytes = await fs.readFileSync(path.resolve(__dirname, '..', recording)).toString('base64');
 
-    console.log(path.resolve(__dirname, '..', recording))
-
     const audio = { content: audioBytes };
     const config = {
       encoding: 'LINEAR16',
       sampleRateHertz: 44100,
       languageCode: 'en-US',
+      enableAutomaticPunctuation: true,
+      useEnhanced: true,
+      enableWordTimeOffsets: true,
     };
     const request = { audio: audio, config: config };
 
-    const startTime = Date.now();
     const [response] = await client.recognize(request);
     const transcription = response.results
       .map(result => result.alternatives[0].transcript)
       .join('\n');
+    const words = response.results.flatMap(result => result.alternatives[0].words);
+    
+    
+    // Calculate total duration of the user's recording
+    const startTime = Date.now();
     const endTime = Date.now();
-    const duration = (endTime - startTime) / 1000; // in seconds
+    const actualDuration = getWavDuration(path.resolve(__dirname, '..', recording));
+
+    // Calculate the number of words transcribed
+    const wordCount = words.length;
+
+    console.log("TIME: ", actualDuration)
+
+    // Calculate reading speed in words per minute
+    const readingSpeedWPM = (wordCount / actualDuration) * 60;
+
+    // Calculate percentage based on the duration range
+    const fastestDuration = 180; // seconds
+    const slowestDuration = 360; // seconds
+
+    // Calculate total word count for the reference story
+    const totalWordCount = referencestory.split(/\s+/).filter(word => word.length > 0).length;
+
+    // Calculate expected duration to read the full story at the fastest pace
+    const expectedDurationAtFastestPace = (totalWordCount / (60 / fastestDuration)) * fastestDuration;
+
+    let readingSpeedPercentage;
+
+    if (actualDuration <= fastestDuration) {
+      readingSpeedPercentage = 100;
+    } else if (actualDuration >= slowestDuration) {
+      readingSpeedPercentage = 0;
+    } else {
+      // Adjust percentage based on actual reading duration
+      readingSpeedPercentage = ((1 - (actualDuration - fastestDuration) / (slowestDuration - fastestDuration)) * 100);
+    }
+
+    // Calculate the percentage based on completion ratio if the user stops midway
+    const completionRatio = Math.min(wordCount / totalWordCount, 1); // Ensure it’s between 0 and 1
+    const adjustedPercentage = readingSpeedPercentage * completionRatio;
+
     
 
     const accuracy = computeAccuracy(transcription, referencestory);
-    
+    const prosodyStats = analyzeProsody(path.resolve(__dirname, '..', recording), referencestory);
 
-    await Storyassessment.create({owner: new mongoose.Types.ObjectId(id), title: storytitle, accuracy: accuracy, speed: 0, prosody: 0, recordfile: recording})
+    await Storyassessment.create({owner: new mongoose.Types.ObjectId(id), title: storytitle, accuracy: accuracy, speed: adjustedPercentage, prosody: (prosodyStats.averagePitchPercentage + prosodyStats.intensityPercentage + prosodyStats.tempoPercentage), recordfile: recording})
     .catch(err => {
       console.log(`There's a problem saving story assessment for ${username}. Error: ${err}`)
 
       return res.status(400).json({message: "bad-request", data: "There's a problem saving story assessment. Please contact customer support!"})
     })
-    
-    console.log("whaat3");
 
     return res.json({message: "success", data: {
-      score: ((accuracy + 0 + 0) / 500) * 100,
+      score: ((accuracy + readingSpeedPercentage + (prosodyStats.averagePitchPercentage + prosodyStats.intensityPercentage + prosodyStats.tempoPercentage)) / 500) * 100,
       accuracy: accuracy,
-      speed: 0,
-      prosody: 0
+      speed: adjustedPercentage,
+      prosody: ((prosodyStats.averagePitchPercentage + prosodyStats.intensityPercentage + prosodyStats.tempoPercentage) / 300) * 100
     }})
   } catch (error) {
     console.log(`There's a problem saving story assessment for ${username}. Error: ${error}`)
