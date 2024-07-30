@@ -1,4 +1,5 @@
 const Storyassessment = require("../models/Storyassessment")
+const {GoogleAuth} = require('google-auth-library');
 
 const {computeAccuracy} = require("../utils/assessmentutils")
 const {convertdatetime} = require("../utils/datetimeutils")
@@ -30,6 +31,8 @@ exports.assessment = async (req, res) => {
   try {
     const audioBytes = await fs.readFileSync(path.resolve(__dirname, '..', recording)).toString('base64');
 
+    console.log(path.resolve(__dirname, '..', recording))
+
     const audio = { content: audioBytes };
     const config = {
       encoding: 'LINEAR16',
@@ -45,8 +48,10 @@ exports.assessment = async (req, res) => {
       .join('\n');
     const endTime = Date.now();
     const duration = (endTime - startTime) / 1000; // in seconds
+    
 
     const accuracy = computeAccuracy(transcription, referencestory);
+    
 
     await Storyassessment.create({owner: new mongoose.Types.ObjectId(id), title: storytitle, accuracy: accuracy, speed: 0, prosody: 0, recordfile: recording})
     .catch(err => {
@@ -54,6 +59,8 @@ exports.assessment = async (req, res) => {
 
       return res.status(400).json({message: "bad-request", data: "There's a problem saving story assessment. Please contact customer support!"})
     })
+    
+    console.log("whaat3");
 
     return res.json({message: "success", data: {
       score: ((accuracy + 0 + 0) / 500) * 100,

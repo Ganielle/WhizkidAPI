@@ -10,7 +10,7 @@ const app = express();
 
 const {initserver} = require("./initialize/init")
 
-process.env.GOOGLE_APPLICATION_CREDENTIALS= JSON.parse(process.env.GOOGLE_KEY)
+process.env.GOOGLE_APPLICATION_CREDENTIALS= 'google_secret_key.json'
 
 const CORS_ALLOWED = process.env.ALLOWED_CORS
 
