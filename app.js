@@ -10,7 +10,7 @@ const app = express();
 
 const {initserver} = require("./initialize/init")
 
-process.env.GOOGLE_APPLICATION_CREDENTIALS='lofty-object-374114-88adaa39f011.json'
+process.env.GOOGLE_APPLICATION_CREDENTIALS= JSON.parse(process.env.GOOGLE_KEY)
 
 const CORS_ALLOWED = process.env.ALLOWED_CORS
 
