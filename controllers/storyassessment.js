@@ -3,6 +3,7 @@ const {GoogleAuth} = require('google-auth-library');
 
 const {computeAccuracy, analyzeProsody, getWavDuration} = require("../utils/assessmentutils")
 const {convertdatetime} = require("../utils/datetimeutils")
+const {Configuration, OpenAIApi} = require("openai")
 
 const { SpeechClient } = require('@google-cloud/speech');
 const fs = require('fs');
@@ -10,6 +11,9 @@ const { default: mongoose } = require("mongoose");
 const path = require('path');
 
 const client = new SpeechClient();
+
+// const configuration = Configuration({ apiKey: process.env.CHATGPTKEY });
+// const openai = OpenAIApi(configuration);
 
 //  #region USER
 
@@ -46,8 +50,12 @@ exports.assessment = async (req, res) => {
     const transcription = response.results
       .map(result => result.alternatives[0].transcript)
       .join('\n');
+
+    const finaltranscript = transcription.replace(/[\r\n]+/g, '');
+
+    console.log(finaltranscript);
+
     const words = response.results.flatMap(result => result.alternatives[0].words);
-    
     
     // Calculate total duration of the user's recording
     const startTime = Date.now();
@@ -56,8 +64,6 @@ exports.assessment = async (req, res) => {
 
     // Calculate the number of words transcribed
     const wordCount = words.length;
-
-    console.log("TIME: ", actualDuration)
 
     // Calculate reading speed in words per minute
     const readingSpeedWPM = (wordCount / actualDuration) * 60;
@@ -92,7 +98,7 @@ exports.assessment = async (req, res) => {
     const accuracy = computeAccuracy(transcription, referencestory);
     const prosodyStats = analyzeProsody(path.resolve(__dirname, '..', recording), referencestory);
 
-    await Storyassessment.create({owner: new mongoose.Types.ObjectId(id), title: storytitle, accuracy: accuracy, speed: adjustedPercentage, prosody: (prosodyStats.averagePitchPercentage + prosodyStats.intensityPercentage + prosodyStats.tempoPercentage), recordfile: recording})
+    await Storyassessment.create({owner: new mongoose.Types.ObjectId(id), title: storytitle, accuracy: accuracy, speed: adjustedPercentage, prosody: (prosodyStats.averagePitchPercentage + prosodyStats.intensityPercentage + prosodyStats.tempoPercentage), pitch: prosodyStats.averagePitchPercentage, intensity: prosodyStats.intensityPercentage, tempo: prosodyStats.tempoPercentage, userstory: finaltranscript, recordfile: recording})
     .catch(err => {
       console.log(`There's a problem saving story assessment for ${username}. Error: ${err}`)
 
@@ -103,7 +109,10 @@ exports.assessment = async (req, res) => {
       score: ((accuracy + readingSpeedPercentage + (prosodyStats.averagePitchPercentage + prosodyStats.intensityPercentage + prosodyStats.tempoPercentage)) / 500) * 100,
       accuracy: accuracy,
       speed: adjustedPercentage,
-      prosody: ((prosodyStats.averagePitchPercentage + prosodyStats.intensityPercentage + prosodyStats.tempoPercentage) / 300) * 100
+      prosody: ((prosodyStats.averagePitchPercentage + prosodyStats.intensityPercentage + prosodyStats.tempoPercentage) / 300) * 100,
+      pitch: prosodyStats.averagePitchPercentage,
+      intensity: prosodyStats.intensityPercentage,
+      tempo: prosodyStats.tempoPercentage
     }})
   } catch (error) {
     console.log(`There's a problem saving story assessment for ${username}. Error: ${error}`)
@@ -187,7 +196,11 @@ exports.viewstoryassessmentdata = async (req, res) => {
       accuracy: 0,
       speed: 0,
       prosody: 0,
-      score: 0
+      score: 0,
+      pitch: 0,
+      intensity: 0,
+      tempo: 0,
+      transcript: ""
     }})
   }
 
@@ -197,9 +210,13 @@ exports.viewstoryassessmentdata = async (req, res) => {
     title: historydata.title,
     accuracy: historydata.accuracy,
     speed: historydata.speed,
-    prosody: historydata.prosody,
+    prosody: (historydata.prosody / 300) * 100,
     score: ((historydata.accuracy + historydata.speed + historydata.prosody) / 500) * 100,
-    recordfile: historydata.recordfile
+    recordfile: historydata.recordfile,
+    pitch: historydata.pitch,
+    intensity: historydata.intensity * 100,
+    tempo: historydata.tempo,
+    transcript: historydata.userstory
   }
 
   return res.json({message: "success", data: data})

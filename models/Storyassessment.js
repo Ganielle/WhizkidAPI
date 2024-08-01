@@ -18,6 +18,18 @@ const storyAssessmentSchema = new mongoose.Schema(
         prosody: {
             type: Number
         },
+        pitch: {
+            type: Number
+        },
+        intensity: {
+            type: Number
+        },
+        tempo: {
+            type: Number
+        },
+        userstory: {
+            type: String
+        },
         recordfile: {
             type: String
         }
