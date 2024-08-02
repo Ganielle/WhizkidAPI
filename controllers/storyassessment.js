@@ -214,7 +214,7 @@ exports.viewstoryassessmentdata = async (req, res) => {
     score: ((historydata.accuracy + historydata.speed + historydata.prosody) / 500) * 100,
     recordfile: historydata.recordfile,
     pitch: historydata.pitch,
-    intensity: historydata.intensity * 100,
+    intensity: historydata.intensity,
     tempo: historydata.tempo,
     transcript: historydata.userstory
   }

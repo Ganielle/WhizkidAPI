@@ -54,7 +54,7 @@ exports.getstudentdashboard = async (req, res) => {
         data.statistics.speed = speed
         data.statistics.prosody = (prosody / 300) * 100
         data.statistics.pitch = pitch ? pitch : 0
-        data.statistics.intensity = intensity ? (intensity * 100) : 0
+        data.statistics.intensity = intensity ? intensity : 0
         data.statistics.tempo = tempo ? tempo : 0
     })
 
@@ -124,7 +124,7 @@ exports.getadminuserdashboard = async (req, res) => {
         data.statistics.speed = speed
         data.statistics.prosody = (prosody / 300) * 100
         data.statistics.pitch = pitch ? pitch : 0
-        data.statistics.intensity = intensity ? (intensity * 100) : 0
+        data.statistics.intensity = intensity ? intensity : 0
         data.statistics.tempo = tempo ? tempo : 0
     })
 
