@@ -284,5 +284,17 @@ exports.viewassessmenthistory = async (req, res) => {
   }
 };
 
+exports.deleteassessment = async (req, res) => {
+  const {assessmentid} = req.body
+
+  if (!assessmentid){
+    res.status(400).json({message: "failed", data: "Please select a valid assessment data first and try again!"})
+  }
+
+  await Storyassessment.deleteOne({_id: new mongoose.Types.ObjectId(assessmentid)})
+  .catch(err => res.status(400).json({message: "bad-request", data: "There's a problem deleting the assessment data! Please contact customer support for more details"}))
+
+  return res.json({message: "success"})
+}
 
 //  #endregion

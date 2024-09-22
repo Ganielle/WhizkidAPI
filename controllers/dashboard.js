@@ -69,6 +69,7 @@ exports.getadminuserdashboard = async (req, res) => {
     const {id, username} = req.user
     const {userid} = req.query
 
+    console.log("whaaat");
     const assessment = await Storyassessment.find({owner: new mongoose.Types.ObjectId(userid)})
     .sort({'createdAt': 1})
     .then(data => data)
@@ -90,6 +91,7 @@ exports.getadminuserdashboard = async (req, res) => {
     if (assessment.length <= 0){
         return res.json({message: "success", data: {
             title: "",
+            fullname: `${details.firstname} ${details.lastname}`,
             statistics: {
                 score: 0,
                 accuracy: 0,
@@ -104,6 +106,7 @@ exports.getadminuserdashboard = async (req, res) => {
 
     const data = {
         title: "",
+        fullname: `${details.firstname} ${details.lastname}`,
         statistics: {
             score: 0,
             accuracy: 0,

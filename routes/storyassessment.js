@@ -1,5 +1,5 @@
 const router = require("express").Router()
-const { assessment, viewlistassessments, viewstoryassessmentdata, viewassessmenthistory } = require("../controllers/storyassessment")
+const { assessment, viewlistassessments, viewstoryassessmentdata, viewassessmenthistory, deleteassessment } = require("../controllers/storyassessment")
 const {protectplayer, protectadmin} = require("../middleware/middleware")
 const recordingupload = require("../middleware/uploadrecordings")
 
@@ -19,6 +19,6 @@ router
             next()
         })
     }, protectplayer, assessment)
-
+    .post("/deleteassessment", protectadmin, deleteassessment)
 
 module.exports = router;

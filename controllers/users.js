@@ -1,5 +1,6 @@
 const Users = require("../models/Users")
 const Userdetails = require("../models/Userdetails")
+const Storyassessment = require("../models/Storyassessment")
 const { default: mongoose } = require("mongoose")
 
 exports.createstudents = async (req, res) => {
@@ -125,4 +126,16 @@ exports.getstudentlist = async (req, res) => {
 
     return res.json({ message: "success", data: data });
 
+}
+
+exports.deleteuser = async (req, res) => {
+    const {userid} = req.body
+
+    await Users.deleteOne({_id: new mongoose.Types.ObjectId(userid)})
+
+    await Userdetails.deleteOne({owner: new mongoose.Types.ObjectId(userid)})
+
+    await Storyassessment.deleteMany({owner: new mongoose.Types.ObjectId(userid)})
+
+    return res.json({message: "success"})
 }
